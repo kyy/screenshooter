@@ -28,6 +28,7 @@ function createSelectionArea() {
         selectionArea.style.top = `${startY}px`;
         selectionArea.style.width = '0px';
         selectionArea.style.height = '0px';
+        selectionArea.style.pointerEvents = "none"; // Показываем, что выделение не интерактивно
 
         document.body.appendChild(selectionArea);
 
@@ -51,11 +52,57 @@ function createSelectionArea() {
 
             // Добавляем выделение в список и удаляем предыдущие
             selectedAreas.forEach(area => document.body.removeChild(area));
-            selectedAreas = [selectionArea]; // Сохраняем текущее выделение
+            selectedAreas = [selectionArea];
+
+            // Теперь добавим возможность изменять размер выделенной области
+            enableResizing(selectionArea);
 
             document.body.removeChild(overlay); // Удаляем overlay после завершения выделения
         }, { once: true });
     }, { once: true });
+}
+
+function enableResizing(selectionArea) {
+    selectionArea.style.pointerEvents = "auto"; // Позволяем клики по выделенной области
+
+    let isResizing = false;
+    let startX, startY, startWidth, startHeight;
+
+    // Добавляем элемент для изменения размера
+    const resizeHandle = document.createElement("div");
+    resizeHandle.style.position = "absolute";
+    resizeHandle.style.width = "10px";
+    resizeHandle.style.height = "10px";
+    resizeHandle.style.background = "blue";
+    resizeHandle.style.cursor = "nwse-resize"; // Указатель при наведении
+    resizeHandle.style.right = "-5px"; // Позиция в правом нижнем углу
+    resizeHandle.style.bottom = "-5px";
+    selectionArea.appendChild(resizeHandle);
+
+    resizeHandle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        isResizing = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startWidth = parseInt(document.defaultView.getComputedStyle(selectionArea).width, 10);
+        startHeight = parseInt(document.defaultView.getComputedStyle(selectionArea).height, 10);
+
+        document.addEventListener('mousemove', resize);
+        document.addEventListener('mouseup', stopResize);
+    });
+
+    function resize(e) {
+        if (isResizing) {
+            selectionArea.style.width = `${Math.max(startWidth + e.clientX - startX, 0)}px`;
+            selectionArea.style.height = `${Math.max(startHeight + e.clientY - startY, 0)}px`;
+        }
+    }
+
+    function stopResize() {
+        isResizing = false;
+        document.removeEventListener('mousemove', resize);
+        document.removeEventListener('mouseup', stopResize);
+    }
 }
 
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
