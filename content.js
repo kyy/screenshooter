@@ -19,6 +19,50 @@ function createSelectionArea() {
     selectionArea.style.zIndex = 9999; // На верхнем слое
     selectionArea.style.pointerEvents = "none"; // Чтобы выделение не блокировало клики
 
+    // Создаем кнопки
+    const closeButton = createButton("X", () => {
+        // Удаляем выделенную область и очищаем массив
+        document.body.removeChild(selectionArea);
+        selectedAreas = selectedAreas.filter(area => area !== selectionArea);
+        overlay.remove();
+    });
+
+    const saveButton = createButton("Save", () => {
+        // Обработчик для сохранения выделенной области
+        const rect = selectionArea.getBoundingClientRect();
+        chrome.runtime.sendMessage({ rect: rect }, (response) => {
+            console.log('Screenshot captured:', response);
+        });
+    });
+
+    // Устанавливаем позиции кнопок
+    closeButton.style.top = "5px";
+    closeButton.style.left = "5px";
+    saveButton.style.top = "5px";
+    saveButton.style.right = "5px";
+
+    selectionArea.appendChild(closeButton);
+    selectionArea.appendChild(saveButton);
+
+    // Скрываем кнопки изначально
+    closeButton.style.opacity = 0;
+    saveButton.style.opacity = 0;
+
+    // Эффект появления кнопок при наведении
+    selectionArea.addEventListener('mouseenter', () => {
+        closeButton.style.transition = "opacity 0.2s";
+        saveButton.style.transition = "opacity 0.2s";
+        closeButton.style.opacity = 1;
+        saveButton.style.opacity = 1;
+    });
+
+    selectionArea.addEventListener('mouseleave', () => {
+        closeButton.style.opacity = 0;
+        saveButton.style.opacity = 0;
+    });
+
+    document.body.appendChild(selectionArea);
+
     let startX, startY;
 
     overlay.addEventListener('mousedown', (e) => {
@@ -28,15 +72,14 @@ function createSelectionArea() {
         selectionArea.style.top = `${startY}px`;
         selectionArea.style.width = '0px';
         selectionArea.style.height = '0px';
-        selectionArea.style.pointerEvents = "none"; // Показываем, что выделение не интерактивно
-
-        document.body.appendChild(selectionArea);
 
         const onMouseMove = (e) => {
-            selectionArea.style.width = Math.abs(e.pageX - startX) + 'px';
-            selectionArea.style.height = Math.abs(e.pageY - startY) + 'px';
-            selectionArea.style.left = `${Math.min(e.pageX, startX)}px`;
-            selectionArea.style.top = `${Math.min(e.pageY, startY)}px`;
+            const currentX = e.pageX;
+            const currentY = e.pageY;
+            selectionArea.style.width = Math.abs(currentX - startX) + 'px';
+            selectionArea.style.height = Math.abs(currentY - startY) + 'px';
+            selectionArea.style.left = `${Math.min(currentX, startX)}px`;
+            selectionArea.style.top = `${Math.min(currentY, startY)}px`;
         };
 
         overlay.addEventListener('mousemove', onMouseMove);
@@ -45,24 +88,40 @@ function createSelectionArea() {
             overlay.removeEventListener('mousemove', onMouseMove);
             selectionArea.style.pointerEvents = "auto"; // Позволяем взаимодействие с выделением
 
-            // Получаем прямоугольник выделенной области
-            const rect = selectionArea.getBoundingClientRect();
-            chrome.runtime.sendMessage({ rect: rect }, (response) => {
-                console.log('Screenshot captured:', response);
-            });
+            // Добавляем выделение в список
+            selectedAreas.push(selectionArea);
 
-            // Добавляем выделение в список и удаляем предыдущие
-            selectedAreas.forEach(area => document.body.removeChild(area));
-            selectedAreas = [selectionArea];
+            enableResizingAndDragging(selectionArea, closeButton, saveButton); // Передаем кнопки
 
-            enableResizingAndDragging(selectionArea); // Добавляем возможность изменять размер и перемещать выделенную область
-
-            document.body.removeChild(overlay); // Удаляем overlay после завершения выделения
+            // Удаляем overlay после завершения выделения
+            document.body.removeChild(overlay);
         }, { once: true });
     }, { once: true });
 }
 
-function enableResizingAndDragging(selectionArea) {
+function createButton(text, onClick) {
+    const button = document.createElement("button");
+    button.innerHTML = text;
+    button.style.position = "absolute";
+    button.style.zIndex = 10000; // Над выделенной областью
+    button.style.cursor = "pointer";
+    button.style.background = text === "Save" ? "blue" : "red"; // Цвет кнопки "Save" синий и кнопки "Close" красный
+    button.style.border = "none";
+    button.style.color = "white";
+    button.style.borderRadius = "3px";
+    button.style.padding = "5px";
+    button.style.fontSize = "12px";
+
+    // Обработчик клика
+    button.addEventListener('click', (event) => {
+        event.stopPropagation(); // Останавливаем распространение события, чтобы избежать перетаскивания
+        onClick();
+    });
+
+    return button;
+}
+
+function enableResizingAndDragging(selectionArea, closeButton, saveButton) {
     let isResizing = false;
     let isDragging = false;
     let startX, startY, origX, origY;
@@ -93,8 +152,9 @@ function enableResizingAndDragging(selectionArea) {
         document.addEventListener('mouseup', stopResize);
     });
 
+    // Перетаскивание рамки
     selectionArea.addEventListener('mousedown', (e) => {
-        if (e.target !== resizeHandle) { // Убедитесь, что мы не перетаскиваем, когда нажимаем на ручку изменения размера
+        if (e.target !== resizeHandle) { // Убедитесь, что мы не перетаскиваем, когда нажимаем на ручку изменениия размера
             isDragging = true;
             origX = parseInt(selectionArea.style.left, 10);
             origY = parseInt(selectionArea.style.top, 10);
