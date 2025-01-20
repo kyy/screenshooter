@@ -1,3 +1,5 @@
+let selectedAreas = []; // Массив для хранения выделенных областей
+
 function createSelectionArea() {
     // Создаем элемент для перекрытия
     const overlay = document.createElement("div");
@@ -40,11 +42,17 @@ function createSelectionArea() {
 
         overlay.addEventListener('mouseup', () => {
             overlay.removeEventListener('mousemove', onMouseMove);
+
+            // Получаем прямоугольник выделенной области
             const rect = selectionArea.getBoundingClientRect();
             chrome.runtime.sendMessage({ rect: rect }, (response) => {
                 console.log('Screenshot captured:', response);
             });
-            document.body.removeChild(selectionArea);
+
+            // Добавляем выделение в список и удаляем предыдущие
+            selectedAreas.forEach(area => document.body.removeChild(area));
+            selectedAreas = [selectionArea]; // Сохраняем текущее выделение
+
             document.body.removeChild(overlay); // Удаляем overlay после завершения выделения
         }, { once: true });
     }, { once: true });
