@@ -43,6 +43,7 @@ function createSelectionArea() {
 
         overlay.addEventListener('mouseup', () => {
             overlay.removeEventListener('mousemove', onMouseMove);
+            selectionArea.style.pointerEvents = "auto"; // Позволяем взаимодействие с выделением
 
             // Получаем прямоугольник выделенной области
             const rect = selectionArea.getBoundingClientRect();
@@ -54,19 +55,18 @@ function createSelectionArea() {
             selectedAreas.forEach(area => document.body.removeChild(area));
             selectedAreas = [selectionArea];
 
-            // Теперь добавим возможность изменять размер выделенной области
-            enableResizing(selectionArea);
+            enableResizingAndDragging(selectionArea); // Добавляем возможность изменять размер и перемещать выделенную область
 
             document.body.removeChild(overlay); // Удаляем overlay после завершения выделения
         }, { once: true });
     }, { once: true });
 }
 
-function enableResizing(selectionArea) {
-    selectionArea.style.pointerEvents = "auto"; // Позволяем клики по выделенной области
-
+function enableResizingAndDragging(selectionArea) {
     let isResizing = false;
-    let startX, startY, startWidth, startHeight;
+    let isDragging = false;
+    let startX, startY, origX, origY;
+    let startWidth, startHeight;
 
     // Добавляем элемент для изменения размера
     const resizeHandle = document.createElement("div");
@@ -84,17 +84,39 @@ function enableResizing(selectionArea) {
         isResizing = true;
         startX = e.clientX;
         startY = e.clientY;
-        startWidth = parseInt(document.defaultView.getComputedStyle(selectionArea).width, 10);
-        startHeight = parseInt(document.defaultView.getComputedStyle(selectionArea).height, 10);
+        startWidth = parseInt(window.getComputedStyle(selectionArea).width, 10);
+        startHeight = parseInt(window.getComputedStyle(selectionArea).height, 10);
+        origX = parseInt(selectionArea.style.left, 10);
+        origY = parseInt(selectionArea.style.top, 10);
 
         document.addEventListener('mousemove', resize);
         document.addEventListener('mouseup', stopResize);
     });
 
+    selectionArea.addEventListener('mousedown', (e) => {
+        if (e.target !== resizeHandle) { // Убедитесь, что мы не перетаскиваем, когда нажимаем на ручку изменения размера
+            isDragging = true;
+            origX = parseInt(selectionArea.style.left, 10);
+            origY = parseInt(selectionArea.style.top, 10);
+            startX = e.clientX;
+            startY = e.clientY;
+
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+        }
+    });
+
     function resize(e) {
         if (isResizing) {
-            selectionArea.style.width = `${Math.max(startWidth + e.clientX - startX, 0)}px`;
-            selectionArea.style.height = `${Math.max(startHeight + e.clientY - startY, 0)}px`;
+            selectionArea.style.width = `${Math.max(startWidth + (e.clientX - startX), 0)}px`;
+            selectionArea.style.height = `${Math.max(startHeight + (e.clientY - startY), 0)}px`;
+        }
+    }
+
+    function drag(e) {
+        if (isDragging) {
+            selectionArea.style.left = `${origX + (e.clientX - startX)}px`;
+            selectionArea.style.top = `${origY + (e.clientY - startY)}px`;
         }
     }
 
@@ -103,12 +125,18 @@ function enableResizing(selectionArea) {
         document.removeEventListener('mousemove', resize);
         document.removeEventListener('mouseup', stopResize);
     }
+
+    function stopDrag() {
+        isDragging = false;
+        document.removeEventListener('mousemove', drag);
+        document.removeEventListener('mouseup', stopDrag);
+    }
 }
 
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     console.log("Message received:", request);
     if (request.action === 'selectArea') {
-        await createSelectionArea(); // Можно сделать асинхронным
+        await createSelectionArea(); // Запускаем создание выделенной области
         sendResponse({ success: true });
     }
 });
