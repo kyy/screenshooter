@@ -229,12 +229,3 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         sendResponse({ success: true });
     }
 });
-
-chrome.runtime.sendMessage({ action: 'captureVisibleTab' }, (response) => {
-    console.log("Response from background script:", response);
-    if (response && response.success) {
-        // Обработка ответа
-    } else {
-        console.error("Failed to capture tab");
-    }
-});
