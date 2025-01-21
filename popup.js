@@ -14,3 +14,18 @@ document.getElementById('capture').addEventListener('click', () => {
         }
     });
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+    // Получаем текущий URL
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        if (tabs.length > 0) {
+            const currentTabUrl = tabs[0].url;
+
+            // Проверяем, если URL соответствует страницам настроек
+            if (currentTabUrl.startsWith("chrome://") || currentTabUrl.startsWith("edge://")) {
+                // Делаем кнопку неактивной
+                document.getElementById("capture").disabled = true;
+            }
+        }
+    });
+});
