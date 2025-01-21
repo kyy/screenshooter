@@ -27,13 +27,42 @@ function createSelectionArea() {
         overlay.remove();
     });
 
+    // Функция для создания кнопки "Save" и обработки события нажатия
     const saveButton = createButton("Save", () => {
-        // Обработчик для сохранения выделенной области
-        const rect = selectionArea.getBoundingClientRect();
-        chrome.runtime.sendMessage({ rect: rect }, (response) => {
-            console.log('Screenshot captured:', response);
+        // Отправляем сообщение фонового скрипту для захвата изображения
+        chrome.runtime.sendMessage({ action: 'captureVisibleTab' }, (response) => {
+            if (response.success) {
+                // Создаем элемент изображения для обработки скриншота
+                const img = new Image();
+                img.src = response.imgUrl;
+                img.onload = function () {
+                    // Создаем canvas для обработки скриншота и т.д.
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const rect = selectionArea.getBoundingClientRect();
+                    canvas.width = rect.width;
+                    canvas.height = rect.height;
+
+                    // Рисуем на canvas только нужную часть скриншота
+                    ctx.drawImage(img, rect.left, rect.top, rect.width, rect.height, 0, 0, rect.width, rect.height);
+                    // Преобразуем обрезанное изображение в Data URL
+                    const croppedImgSrc = canvas.toDataURL('image/png');
+                    // Сохраняем или обрабатываем полученное изображение
+                    downloadImage(croppedImgSrc);
+                };
+            } else {
+                console.error("Ошибка при захвате видимой вкладки");
+            }
         });
     });
+
+    // Функция для скачивания изображения
+    function downloadImage(dataUrl) {
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = 'screenshot.png';
+        link.click();
+    }
 
     // Устанавливаем позиции кнопок
     closeButton.style.top = "5px";
@@ -198,5 +227,14 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     if (request.action === 'selectArea') {
         await createSelectionArea(); // Запускаем создание выделенной области
         sendResponse({ success: true });
+    }
+});
+
+chrome.runtime.sendMessage({ action: 'captureVisibleTab' }, (response) => {
+    console.log("Response from background script:", response);
+    if (response && response.success) {
+        // Обработка ответа
+    } else {
+        console.error("Failed to capture tab");
     }
 });
