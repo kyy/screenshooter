@@ -29,31 +29,47 @@ function createSelectionArea() {
 
     // Функция для создания кнопки "Save" и обработки события нажатия
     const saveButton = createButton("Save", () => {
-        // Отправляем сообщение фонового скрипту для захвата изображения
-        chrome.runtime.sendMessage({ action: 'captureVisibleTab' }, (response) => {
-            if (response.success) {
-                // Создаем элемент изображения для обработки скриншота
-                const img = new Image();
-                img.src = response.imgUrl;
-                img.onload = function () {
-                    // Создаем canvas для обработки скриншота и т.д.
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const rect = selectionArea.getBoundingClientRect();
-                    canvas.width = rect.width;
-                    canvas.height = rect.height;
 
-                    // Рисуем на canvas только нужную часть скриншота
-                    ctx.drawImage(img, rect.left, rect.top, rect.width, rect.height, 0, 0, rect.width, rect.height);
-                    // Преобразуем обрезанное изображение в Data URL
-                    const croppedImgSrc = canvas.toDataURL('image/png');
-                    // Сохраняем или обрабатываем полученное изображение
-                    downloadImage(croppedImgSrc);
-                };
-            } else {
-                console.error("Ошибка при захвате видимой вкладки");
-            }
-        });
+        // Извлекаем цвет рамки
+        const originalBorderColor = selectionArea.style.borderColor;
+
+        //делаем рамку невидимой перед захватом
+        selectionArea.style.borderColor = "transparent";
+        selectionArea.style.display = "none"; // Скрываем выделенную область
+
+
+        // Задержка перед захватом экрана
+        setTimeout(() => {
+            // Отправляем сообщение фонового скрипту для захвата изображения
+            chrome.runtime.sendMessage({ action: 'captureVisibleTab' }, (response) => {
+                if (response.success) {
+                    // Создаем элемент изображения для обработки скриншота
+                    const img = new Image();
+                    img.src = response.imgUrl;
+                    img.onload = function () {
+                        // Создаем canvas для обработки скриншота и т.д.
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const rect = selectionArea.getBoundingClientRect();
+                        canvas.width = rect.width;
+                        canvas.height = rect.height;
+
+                        // Рисуем на canvas только нужную часть скриншота
+                        ctx.drawImage(img, rect.left, rect.top, rect.width, rect.height, 0, 0, rect.width, rect.height);
+                        // Преобразуем обрезанное изображение в Data URL
+                        const croppedImgSrc = canvas.toDataURL('image/png');
+                        // Сохраняем или обрабатываем полученное изображение
+                        downloadImage(croppedImgSrc);
+                    };
+                } else {
+                    console.error("Ошибка при захвате видимой вкладки");
+                    selectionArea.style.borderColor = originalBorderColor; // Вернуть исходный цвет на случай ошибки
+                }
+                // Возвращаем исходный цвет рамки и показываем область снова
+                selectionArea.style.borderColor = originalBorderColor;
+                selectionArea.style.display = ""; // Показываем выделенную область обратно
+            });
+        }, 100); // Задержка в 100 мс (можно изменить значение по необходимости)
     });
 
     // Функция для скачивания изображения
