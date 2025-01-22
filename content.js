@@ -25,16 +25,24 @@ function createSelectionArea() {
     selectionArea.style.zIndex = 9999; // На верхнем слое
     selectionArea.style.pointerEvents = "none"; // Выделение не блокирует клики
 
-    // Создаем контейнер для кнопок
+    // Создаем контейнер для основных кнопок
     const buttonContainer = document.createElement("div");
+    buttonContainer.style.display = "flex"; // Стили для кнопок
     buttonContainer.style.justifyContent = "space-between";
     buttonContainer.style.alignItems = "center";
-    buttonContainer.style.display = "flex"; // Стили для кнопок
     buttonContainer.style.gap = "5px"; // Промежуток между кнопками
-    buttonContainer.style.margin = "5px 5px",  // Отступ от рамки
-        selectionArea.appendChild(buttonContainer); // Добавляем контейнер к выделенной области
+    buttonContainer.style.margin = "5px 5px"; // Отступ от рамки
+    selectionArea.appendChild(buttonContainer); // Добавляем контейнер к выделенной области
 
-    // Функция для создания кнопки с текстом и обработчиком события
+    // Создаем контейнер для Соц-сетей
+    const socialButtonsContainer = document.createElement("div");
+    socialButtonsContainer.style.position = "absolute"; // Абсолютное позиционирование
+    socialButtonsContainer.style.top = "70px"; // От верхнего края
+    socialButtonsContainer.style.right = "0px"; // От правого края
+    socialButtonsContainer.style.display = "none"; // Изначально скрыть
+    buttonContainer.appendChild(socialButtonsContainer); // Добавляем контейнер к buttonContainer
+
+    // Функция для создания основных кнопок и обработчиком события
     function createButton(text, onClick, options = {}) {
         const button = document.createElement("button"); // Создаем кнопку
         button.innerHTML = text; // Устанавливаем текст кнопки
@@ -57,7 +65,7 @@ function createSelectionArea() {
 
         // Обработчик клика по кнопке
         button.addEventListener('click', (event) => {
-            event.stopPropagation(); // Останавливаем распространение события, чтобы избежать перетаскивания
+            event.stopPropagation(); // Останавливаем распространение события
             onClick(); // Вызываем переданный обработчик
         });
 
@@ -77,13 +85,30 @@ function createSelectionArea() {
         }
     });
 
+    // Функция для создания кнопок соц-сетей
+    function createSocialButton(text, onClick) {
+        const button = document.createElement("button"); // Создаем кнопку
+        button.innerHTML = text; // Устанавливаем текст кнопки
+        button.style.cursor = "pointer"; // Указатель
+        button.style.border = "none"; // Убираем границу
+        button.style.borderRadius = "3px"; // Закругленные края
+        button.style.padding = "5px"; // Отступы
+        button.style.fontSize = "12px"; // Размер шрифта
+        button.style.color = "white"; // Цвет шрифта
+        button.style.background = "black"; // Цвет фона кнопки
+        button.style.margin = "5px"; // Отступ между кнопками
+
+        // Добавляем обработчик событий на кнопку
+        button.addEventListener('click', onClick);
+        socialButtonsContainer.appendChild(button); // Добавляем кнопку в контейнер
+        return button; // Возвращаем созданную кнопку
+    }
+
     // Кнопка "Сохранить" (Save Button)
     const saveButton = createButton("Save", () => {
-        // Извлекаем цвет рамки
-        const originalBorderColor = selectionArea.style.borderColor;
+        const originalBorderColor = selectionArea.style.borderColor; // Извлекаем цвет рамки
 
-        // Делаем рамку невидимой перед захватом
-        selectionArea.style.borderColor = "transparent";
+        selectionArea.style.borderColor = "transparent"; // Делаем рамку невидимой перед захватом
         selectionArea.style.display = "none"; // Скрываем выделенную область
 
         // Задержка перед захватом экрана
@@ -95,8 +120,7 @@ function createSelectionArea() {
                     const img = new Image();
                     img.src = response.imgUrl;
                     img.onload = function () {
-                        // Создаем canvas для обработки скриншота
-                        const canvas = document.createElement('canvas');
+                        const canvas = document.createElement('canvas'); // Создаем canvas для обработки скриншота
                         const ctx = canvas.getContext('2d');
                         const rect = selectionArea.getBoundingClientRect(); // Получаем размеры выделенной области
                         canvas.width = rect.width; // Устанавливаем ширину canvas
@@ -104,20 +128,19 @@ function createSelectionArea() {
 
                         // Рисуем на canvas только нужную часть скриншота
                         ctx.drawImage(img, rect.left, rect.top, rect.width, rect.height, 0, 0, rect.width, rect.height);
-                        // Преобразуем обрезанное изображение в Data URL
-                        const croppedImgSrc = canvas.toDataURL('image/png');
-                        // Сохраняем или обрабатываем полученное изображение
-                        downloadImage(croppedImgSrc);
+                        const croppedImgSrc = canvas.toDataURL('image/png'); // Преобразуем обрезанное изображение в Data URL
+                        downloadImage(croppedImgSrc); // Сохраняем или обрабатываем полученное изображение
                     };
                 } else {
                     console.error("Ошибка при захвате видимой вкладки");
                     selectionArea.style.borderColor = originalBorderColor; // Вернуть исходный цвет на случай ошибки
                 }
+
                 // Возвращаем исходный цвет рамки и показываем область снова
                 selectionArea.style.borderColor = originalBorderColor;
                 selectionArea.style.display = ""; // Показываем выделенную область обратно
             });
-        }, 100); // Задержка в 100 мс (можно изменить значение по необходимости)
+        }, 100); // Задержка в 100 мс
     }, {
         className: "save-button",
         style: {
@@ -127,14 +150,6 @@ function createSelectionArea() {
             right: "5px" // От правого края
         }
     });
-
-    // Функция для скачивания изображения
-    function downloadImage(dataUrl) {
-        const link = document.createElement('a'); // Создаем элемент ссылки
-        link.href = dataUrl; // Устанавливаем URL изображения
-        link.download = 'screenshot.png'; // Устанавливаем имя файла
-        link.click(); // Эмулируем клик для загрузки
-    }
 
     // Кнопка "Отправить" (Send Button)
     const sendButton = createButton("Send", () => {
@@ -150,34 +165,6 @@ function createSelectionArea() {
         }
     });
 
-    // Создаем контейнер для кнопок Telegram и Viber
-    const socialButtonsContainer = document.createElement("div");
-    socialButtonsContainer.style.display = "none"; // Изначально скрыть
-    socialButtonsContainer.style.position = "absolute"; // Абсолютное позиционирование
-    socialButtonsContainer.style.top = "70px"; // От верхнего края
-    socialButtonsContainer.style.right = "0px"; // От правого края
-    socialButtonsContainer.style.display = "none"; // Изначально скрыть
-    buttonContainer.appendChild(socialButtonsContainer); // Добавляем контейнер к buttonContainer
-
-    // Функция для создания социальной кнопки
-    function createSocialButton(text, onClick) {
-        const button = document.createElement("button"); // Создаем кнопку
-        button.innerHTML = text; // Устанавливаем текст кнопки
-        button.style.cursor = "pointer"; // Указатель
-        button.style.border = "none"; // Убираем границу
-        button.style.borderRadius = "3px"; // Закругленные края
-        button.style.padding = "5px"; // Отступы
-        button.style.fontSize = "12px"; // Размер шрифта
-        button.style.color = "white"; // Цвет шрифта
-        button.style.background = "black"; // Цвет фона кнопки
-        button.style.margin = "5px"; // Отступ между кнопками
-
-        button.addEventListener('click', onClick); // Добавляем обработчик событий
-
-        socialButtonsContainer.appendChild(button); // Добавляем кнопку в контейнер
-        return button; // Возвращаем созданную кнопку
-    }
-
     // Создаем кнопки Telegram и Viber
     createSocialButton("Telegram", () => {
         alert("Telegram button clicked!");
@@ -189,7 +176,7 @@ function createSelectionArea() {
         // Логика для отправки через Viber
     });
 
-    // Обработчики для скрытия контейнера с социальными кнопками
+    // Обработчик для скрытия контейнера с социальными кнопками
     selectionArea.addEventListener('mouseleave', () => {
         socialButtonsContainer.style.display = 'none'; // Скрыть контейнер при выходе за пределы
     });
@@ -210,11 +197,20 @@ function createSelectionArea() {
 
     document.body.appendChild(selectionArea); // Добавляем выделенную область к body
 
+    // Функция для скачивания изображения
+    function downloadImage(dataUrl) {
+        const link = document.createElement('a'); // Создаем элемент ссылки
+        link.href = dataUrl; // Устанавливаем URL изображения
+        link.download = 'screenshot.png'; // Устанавливаем имя файла
+        link.click(); // Эмулируем клик для загрузки
+    }
+
     let startX, startY; // Переменные для хранения начальных координат
 
+    // Обработчик мыши для начала рисования
     overlay.addEventListener('mousedown', (e) => {
-        startX = e.pageX; // Установка начальной координаты X
-        startY = e.pageY; // Установка начальной координаты Y
+        startX = e.pageX; // Начальная координата X
+        startY = e.pageY; // Начальная координата Y
         selectionArea.style.left = `${startX}px`; // Установка начального положения области
         selectionArea.style.top = `${startY}px`;
         selectionArea.style.width = '0px'; // Начальная ширина области
@@ -224,7 +220,7 @@ function createSelectionArea() {
         const onMouseMove = (e) => {
             const currentX = e.pageX; // Текущая позиция мыши по X
             const currentY = e.pageY; // Текущая позиция мыши по Y
-            selectionArea.style.width = Math.abs(currentX - startX) + 'px'; // Изменяем ширину в зависимости от движения мыши
+            selectionArea.style.width = Math.abs(currentX - startX) + 'px'; // Изменяем ширину
             selectionArea.style.height = Math.abs(currentY - startY) + 'px'; // Изменяем высоту
             selectionArea.style.left = `${Math.min(currentX, startX)}px`; // Устанавливаем левую границу выделения
             selectionArea.style.top = `${Math.min(currentY, startY)}px`; // Устанавливаем верхнюю границу выделения
@@ -253,8 +249,8 @@ function createSelectionArea() {
 
 // Функция для включения изменения размера и перетаскивания выделенной области
 function enableResizingAndDragging(selectionArea) {
-    let isResizing = false;
-    let isDragging = false;
+    let isResizing = false; // Флаг для отслеживания изменения размера
+    let isDragging = false; // Флаг для отслеживания перетаскивания
     let startX, startY, origX, origY; // Начальные координаты
     let startWidth, startHeight; // Начальные размеры выделенной области
 
@@ -275,7 +271,7 @@ function enableResizingAndDragging(selectionArea) {
         isResizing = true; // Устанавливаем флаг изменения размера
         startX = e.clientX; // Начальная позиция X
         startY = e.clientY; // Начальная позиция Y
-        startWidth = parseInt(window.getComputedStyle(selectionArea).width, 10); // Начальная ширина выделенной области
+        startWidth = parseInt(window.getComputedStyle(selectionArea).width, 10); // Начальная ширина
         startHeight = parseInt(window.getComputedStyle(selectionArea).height, 10); // Начальная высота
         origX = parseInt(selectionArea.style.left, 10); // Оригинальная позиция X
         origY = parseInt(selectionArea.style.top, 10); // Оригинальная позиция Y
