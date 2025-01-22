@@ -22,9 +22,12 @@ document.addEventListener("DOMContentLoaded", function () {
             const currentTabUrl = tabs[0].url;
 
             // Проверяем, если URL соответствует страницам настроек
-            if (currentTabUrl.startsWith("chrome://") || currentTabUrl.startsWith("edge://")) {
-                // Делаем кнопку неактивной
-                document.getElementById("capture").disabled = true;
+            if (currentTabUrl.startsWith("chrome://") ||
+                currentTabUrl.startsWith("edge://") ||
+                currentTabUrl.startsWith("https://chromewebstore.google.com/")) {
+                // Скрываем элемент управления и показываем сообщение
+                document.getElementById("control").style.display = 'none'; // Скрываем #control
+                document.getElementById("message").style.display = 'block'; // Показываем #message
             }
         }
     });
