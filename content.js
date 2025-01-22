@@ -1,6 +1,10 @@
 let selectedAreas = []; // Массив для хранения выделенных областей
+let isDrawing = false; // Переменная для отслеживания состояния рисования
 
 function createSelectionArea() {
+    if (isDrawing) return; // Игнорируем попытки начать рисование, если уже рисуем
+    isDrawing = true; // Устанавливаем флаг, что мы начали рисование
+
     // Создаем элемент для перекрытия
     const overlay = document.createElement("div");
     overlay.style.position = "fixed";
@@ -140,6 +144,7 @@ function createSelectionArea() {
 
             // Удаляем overlay после завершения выделения
             document.body.removeChild(overlay);
+            isDrawing = false; // Сброс флага рисования
         }, { once: true });
     }, { once: true });
 }
