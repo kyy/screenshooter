@@ -138,7 +138,8 @@ function createSelectionArea() {
 
     // Кнопка "Отправить" (Send Button)
     const sendButton = createButton("Send", () => {
-        alert("Send button clicked!");
+        // Показать или скрыть контейнер с социальными кнопками
+        socialButtonsContainer.style.display = (socialButtonsContainer.style.display === 'none' || socialButtonsContainer.style.display === '') ? 'block' : 'none';
     }, {
         className: "send-button",
         style: {
@@ -149,6 +150,49 @@ function createSelectionArea() {
         }
     });
 
+    // Создаем контейнер для кнопок Telegram и Viber
+    const socialButtonsContainer = document.createElement("div");
+    socialButtonsContainer.style.display = "none"; // Изначально скрыть
+    socialButtonsContainer.style.position = "absolute"; // Абсолютное позиционирование
+    socialButtonsContainer.style.top = "70px"; // От верхнего края
+    socialButtonsContainer.style.right = "0px"; // От правого края
+    socialButtonsContainer.style.display = "none"; // Изначально скрыть
+    buttonContainer.appendChild(socialButtonsContainer); // Добавляем контейнер к buttonContainer
+
+    // Функция для создания социальной кнопки
+    function createSocialButton(text, onClick) {
+        const button = document.createElement("button"); // Создаем кнопку
+        button.innerHTML = text; // Устанавливаем текст кнопки
+        button.style.cursor = "pointer"; // Указатель
+        button.style.border = "none"; // Убираем границу
+        button.style.borderRadius = "3px"; // Закругленные края
+        button.style.padding = "5px"; // Отступы
+        button.style.fontSize = "12px"; // Размер шрифта
+        button.style.color = "white"; // Цвет шрифта
+        button.style.background = "black"; // Цвет фона кнопки
+        button.style.margin = "5px"; // Отступ между кнопками
+
+        button.addEventListener('click', onClick); // Добавляем обработчик событий
+
+        socialButtonsContainer.appendChild(button); // Добавляем кнопку в контейнер
+        return button; // Возвращаем созданную кнопку
+    }
+
+    // Создаем кнопки Telegram и Viber
+    createSocialButton("Telegram", () => {
+        alert("Telegram button clicked!");
+        // Логика для отправки через Telegram
+    });
+
+    createSocialButton("Viber", () => {
+        alert("Viber button clicked!");
+        // Логика для отправки через Viber
+    });
+
+    // Обработчики для скрытия контейнера с социальными кнопками
+    selectionArea.addEventListener('mouseleave', () => {
+        socialButtonsContainer.style.display = 'none'; // Скрыть контейнер при выходе за пределы
+    });
 
     // Скрываем кнопки изначально
     buttonContainer.style.opacity = 0;
