@@ -25,15 +25,59 @@ function createSelectionArea() {
     selectionArea.style.zIndex = 9999; // На верхнем слое
     selectionArea.style.pointerEvents = "none"; // Выделение не блокирует клики
 
-    // Создаем кнопку "Закрыть"
+    // Создаем контейнер для кнопок
+    const buttonContainer = document.createElement("div");
+    buttonContainer.style.justifyContent = "space-between";
+    buttonContainer.style.alignItems = "center";
+    buttonContainer.style.display = "flex"; // Стили для кнопок
+    buttonContainer.style.gap = "5px"; // Промежуток между кнопками
+    buttonContainer.style.margin = "5px 5px",  // Отступ от рамки
+        selectionArea.appendChild(buttonContainer); // Добавляем контейнер к выделенной области
+
+    // Функция для создания кнопки с текстом и обработчиком события
+    function createButton(text, onClick, options = {}) {
+        const button = document.createElement("button"); // Создаем кнопку
+        button.innerHTML = text; // Устанавливаем текст кнопки
+
+        // Применяем заданные классы и стили из options
+        if (options.className) {
+            button.className = options.className; // Устанавливаем классы кнопки
+        }
+
+        if (options.style) {
+            Object.assign(button.style, options.style); // Устанавливаем стили
+        }
+
+        button.style.cursor = "pointer"; // Курсор - указатель
+        button.style.border = "none"; // Убираем границу
+        button.style.borderRadius = "3px"; // Закругленные края
+        button.style.padding = "5px"; // Отступы внутри кнопки
+        button.style.fontSize = "12px"; // Размер шрифта
+        button.style.color = "white"; // Цвет шрифта
+
+        // Обработчик клика по кнопке
+        button.addEventListener('click', (event) => {
+            event.stopPropagation(); // Останавливаем распространение события, чтобы избежать перетаскивания
+            onClick(); // Вызываем переданный обработчик
+        });
+
+        buttonContainer.appendChild(button); // Добавляем кнопку в контейнер
+        return button; // Возвращаем созданную кнопку
+    }
+
+    // Кнопка "Закрыть" (Close Button)
     const closeButton = createButton("X", () => {
-        // Удаляем выделенную область и очищаем массив
         document.body.removeChild(selectionArea);
         selectedAreas = selectedAreas.filter(area => area !== selectionArea);
         overlay.remove(); // Удаляем перекрытие
+    }, {
+        className: "close-button",
+        style: {
+            background: "red",
+        }
     });
 
-    // Функция для создания кнопки "Сохранить" и обработки события нажатия
+    // Кнопка "Сохранить" (Save Button)
     const saveButton = createButton("Save", () => {
         // Извлекаем цвет рамки
         const originalBorderColor = selectionArea.style.borderColor;
@@ -74,6 +118,14 @@ function createSelectionArea() {
                 selectionArea.style.display = ""; // Показываем выделенную область обратно
             });
         }, 100); // Задержка в 100 мс (можно изменить значение по необходимости)
+    }, {
+        className: "save-button",
+        style: {
+            background: "blue",
+            position: "absolute", // Позиционируем абсолютно
+            top: "5px", // От верхнего края
+            right: "5px" // От правого края
+        }
     });
 
     // Функция для скачивания изображения
@@ -84,32 +136,32 @@ function createSelectionArea() {
         link.click(); // Эмулируем клик для загрузки
     }
 
-    // Устанавливаем позиции кнопок на выделенной области
-    closeButton.style.top = "5px";
-    closeButton.style.left = "5px";
-    saveButton.style.top = "5px";
-    saveButton.style.right = "5px";
+    // Кнопка "Отправить" (Send Button)
+    const sendButton = createButton("Send", () => {
+        alert("Send button clicked!");
+    }, {
+        className: "send-button",
+        style: {
+            background: "green",
+            position: "absolute", // Позиционируем абсолютно
+            top: "40px", // Устанавливаем отступ сверху для размещения под кнопкой "Сохранить"
+            right: "5px" // Оставляем то же самое для правого края
+        }
+    });
 
-    // Добавляем кнопки в выделенную область
-    selectionArea.appendChild(closeButton);
-    selectionArea.appendChild(saveButton);
 
     // Скрываем кнопки изначально
-    closeButton.style.opacity = 0;
-    saveButton.style.opacity = 0;
+    buttonContainer.style.opacity = 0;
 
     // Эффект появления кнопок при наведении над выбором
     selectionArea.addEventListener('mouseenter', () => {
-        closeButton.style.transition = "opacity 0.2s";
-        saveButton.style.transition = "opacity 0.2s";
-        closeButton.style.opacity = 1; // Появление кнопки "Закрыть"
-        saveButton.style.opacity = 1; // Появление кнопки "Сохранить"
+        buttonContainer.style.transition = "opacity 0.2s";
+        buttonContainer.style.opacity = 1; // Появление кнопок
     });
 
     // Эффект скрытия кнопок при покидании области выделения
     selectionArea.addEventListener('mouseleave', () => {
-        closeButton.style.opacity = 0; // Скрытие кнопки "Закрыть"
-        saveButton.style.opacity = 0; // Скрытие кнопки "Сохранить"
+        buttonContainer.style.opacity = 0; // Скрытие кнопок
     });
 
     document.body.appendChild(selectionArea); // Добавляем выделенную область к body
@@ -146,7 +198,7 @@ function createSelectionArea() {
             selectedAreas.push(selectionArea);
 
             // Включаем возможность изменения размера и перетаскивания выделенной области
-            enableResizingAndDragging(selectionArea, closeButton, saveButton); // Передаем кнопки
+            enableResizingAndDragging(selectionArea); // Передаем только выделенную область
 
             // Удаляем overlay после завершения выделения
             document.body.removeChild(overlay);
@@ -155,31 +207,8 @@ function createSelectionArea() {
     }, { once: true }); // Указание для единственного срабатывания события
 }
 
-// Функция для создания кнопки с текстом и обработчиком события
-function createButton(text, onClick) {
-    const button = document.createElement("button"); // Создаем кнопку
-    button.innerHTML = text; // Устанавливаем текст кнопки
-    button.style.position = "absolute"; // Абсолютное позиционирование
-    button.style.zIndex = 10000; // Над выделенной областью
-    button.style.cursor = "pointer"; // Курсор - указатель
-    button.style.background = text === "Save" ? "blue" : "red"; // Цвет кнопки "Save" синий и "Close" красный
-    button.style.border = "none"; // Убираем границу
-    button.style.color = "white"; // Цвет текста
-    button.style.borderRadius = "3px"; // Закругленные края
-    button.style.padding = "5px"; // Отступы внутри кнопки
-    button.style.fontSize = "12px"; // Размер шрифта
-
-    // Обработчик клика по кнопке
-    button.addEventListener('click', (event) => {
-        event.stopPropagation(); // Останавливаем распространение события, чтобы избежать перетаскивания
-        onClick(); // Вызываем переданный обработчик
-    });
-
-    return button; // Возвращаем созданную кнопку
-}
-
 // Функция для включения изменения размера и перетаскивания выделенной области
-function enableResizingAndDragging(selectionArea, closeButton, saveButton) {
+function enableResizingAndDragging(selectionArea) {
     let isResizing = false;
     let isDragging = false;
     let startX, startY, origX, origY; // Начальные координаты
