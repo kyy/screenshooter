@@ -42,6 +42,28 @@ function createSelectionArea() {
     socialButtonsContainer.style.display = "none"; // Изначально скрыть
     buttonContainer.appendChild(socialButtonsContainer); // Добавляем контейнер к buttonContainer
 
+
+    // Всплывающее сообщение для уведомления пользователя
+    function showTemporaryMessage(message) {
+        const messageContainer = document.createElement("div");
+        messageContainer.innerHTML = message; // Устанавливаем содержимое сообщения
+        messageContainer.style.position = "absolute"; // Абсолютное позиционирование
+        messageContainer.style.top = "50%"; // Центрировать по вертикали
+        messageContainer.style.left = "50%"; // Центрировать по горизонтали
+        messageContainer.style.transform = "translate(-50%, -50%)"; // Подвинуть на половину ширины и высоты
+        messageContainer.style.background = "rgba(0, 0, 0, 0.7)"; // Полупрозрачный фон
+        messageContainer.style.color = "white"; // Цвет текста
+        messageContainer.style.padding = "10px"; // Отступы
+        messageContainer.style.borderRadius = "5px"; // Закругленные края
+        messageContainer.style.zIndex = "10000"; // Поднимать над остальным контентом
+        buttonContainer.appendChild(messageContainer); // Добавляем сообщение к контейнеру кнопок
+
+        // Удаление сообщения через t секунды
+        setTimeout(() => {
+            buttonContainer.removeChild(messageContainer); // Удаляем сообщение
+        }, 1200); // 
+    }
+
     // Функция для создания основных кнопок и обработчиком события
     function createButton(text, onClick, options = {}) {
         const button = document.createElement("button"); // Создаем кнопку
@@ -73,17 +95,6 @@ function createSelectionArea() {
         return button; // Возвращаем созданную кнопку
     }
 
-    // Кнопка "Закрыть" (Close Button)
-    const closeButton = createButton("X", () => {
-        document.body.removeChild(selectionArea);
-        selectedAreas = selectedAreas.filter(area => area !== selectionArea);
-        overlay.remove(); // Удаляем перекрытие
-    }, {
-        className: "close-button",
-        style: {
-            background: "red",
-        }
-    });
 
     // Функция для создания кнопок соц-сетей
     function createSocialButton(text, onClick) {
@@ -104,8 +115,9 @@ function createSelectionArea() {
         return button; // Возвращаем созданную кнопку
     }
 
-    // Кнопка "Сохранить" (Save Button)
-    const saveButton = createButton("Save", () => {
+
+    // Функция для обработки изображения (для кнопок "Save" и "Copy")
+    function handleImage(method) {
         const originalBorderColor = selectionArea.style.borderColor; // Извлекаем цвет рамки
 
         selectionArea.style.borderColor = "transparent"; // Делаем рамку невидимой перед захватом
@@ -129,7 +141,13 @@ function createSelectionArea() {
                         // Рисуем на canvas только нужную часть скриншота
                         ctx.drawImage(img, rect.left, rect.top, rect.width, rect.height, 0, 0, rect.width, rect.height);
                         const croppedImgSrc = canvas.toDataURL('image/png'); // Преобразуем обрезанное изображение в Data URL
-                        downloadImage(croppedImgSrc); // Сохраняем или обрабатываем полученное изображение
+
+                        // Здесь логика для скачивания или копирования
+                        if (method == "copy") {
+                            copyImage(croppedImgSrc); // Логика для копирования изображения в буфер обмена
+                        } else if (method == "save") {
+                            downloadImage(croppedImgSrc); // Сохраняем или обрабатываем полученное изображение
+                        }
                     };
                 } else {
                     console.error("Ошибка при захвате видимой вкладки");
@@ -141,6 +159,36 @@ function createSelectionArea() {
                 selectionArea.style.display = ""; // Показываем выделенную область обратно
             });
         }, 100); // Задержка в 100 мс
+    }
+
+    // Функция для копирования изображения в буфер обмена
+    async function copyImage(dataUrl) {
+        try {
+            const blob = await fetch(dataUrl).then(res => res.blob()); // Получаем Blob-изображение
+            const item = new ClipboardItem({ 'image/png': blob }); // Создаем элемент для буфера обмена
+            await navigator.clipboard.write([item]); // Пишем изображение в буфер обмена
+            showTemporaryMessage('Изображение скопировано в буфер обмена!'); // Показываем всплывающее сообщение
+        } catch (err) {
+            console.error('Ошибка при копировании изображения: ', err);
+            showTemporaryMessage('Ошибка при копировании изображения!'); // Показываем сообщение об ошибке
+        }
+    }
+
+    // Кнопка "Закрыть" (Close Button)
+    const closeButton = createButton("X", () => {
+        document.body.removeChild(selectionArea);
+        selectedAreas = selectedAreas.filter(area => area !== selectionArea);
+        overlay.remove(); // Удаляем перекрытие
+    }, {
+        className: "close-button",
+        style: {
+            background: "red",
+        }
+    });
+
+    // Кнопка "Save" (Сохранить)
+    const saveButton = createButton("Save", () => {
+        handleImage("save"); // Передаем для сохранения
     }, {
         className: "save-button",
         style: {
@@ -148,6 +196,19 @@ function createSelectionArea() {
             position: "absolute", // Позиционируем абсолютно
             top: "5px", // От верхнего края
             right: "5px" // От правого края
+        }
+    });
+
+    // Кнопка "Copy" (Копировать)
+    const copyButton = createButton("Copy", () => {
+        handleImage("copy"); // Передаем для копирования
+    }, {
+        className: "copy-button",
+        style: {
+            background: "orange",
+            position: "absolute", // Позиционируем абсолютно
+            top: "5px", // От верхнего края
+            right: "55px" // От правого края (для размещения рядом с кнопкой "Save")
         }
     });
 

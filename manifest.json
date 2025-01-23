@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Screenshot Extension",
+    "name": "Shoo",
     "version": "1.0",
     "description": "Capture selected area of the screen.",
     "permissions": [
